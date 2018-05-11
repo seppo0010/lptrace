@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # lptrace - Copyright (c) 2016 Karim Hamidou.
 # Portions inspired by Pyrasite.
 import os
@@ -28,28 +28,28 @@ untrace_fn = """import sys ; sys.settrace(None)"""
 
 
 def runfile(pid, script):
-    with tempfile.NamedTemporaryFile() as tmp:
+    with tempfile.NamedTemporaryFile(mode='w+') as tmp:
         name = tmp.name
         tmp.write(script)
 
         tmp.file.flush()
-        os.chmod(tmp.name, 0666)
+        os.chmod(tmp.name, int('666', 8))
 
-        cmd = 'execfile(\\"{}\\")'.format(name)
+        cmd = 'exec(open(\\"{}\\", \\"r\\").read())'.format(name)
         inject(pid, cmd)
 
 
 def strace(pid):
     fifo_name = tempfile.mktemp()
     os.mkfifo(fifo_name)
-    os.chmod(fifo_name, 0777)
+    os.chmod(fifo_name, int('777', 8))
 
     trace_code = trace_fn % fifo_name
     runfile(pid, trace_code)
 
     # Remove the trace if the user types Ctrl-C:
     def sigint_handler(signal, frame):
-        print 'Received Ctrl-C, quitting'
+        print('Received Ctrl-C, quitting')
         runfile(pid, untrace_fn)
         sys.exit(0)
 
@@ -59,7 +59,7 @@ def strace(pid):
         while True:
             data = fd.read()
             if data != '':
-                print data
+                print(data)
 
 
 def pdb_prompt(pid):
@@ -100,17 +100,17 @@ def main():
     (options, args) = parser.parse_args()
 
     if options.pid is None:
-        print "You need to specify a process to attach to."
+        print("You need to specify a process to attach to.")
         sys.exit(-1)
 
     pid = int(options.pid)
 
     if not cmd_exists('gdb'):
-        print "Error: lptrace requires GDB >= 7.x. Exiting."
+        print("Error: lptrace requires GDB >= 7.x. Exiting.")
         sys.exit(-1)
 
     if os.geteuid() != 0:
-        print "Error: you must be root to run lptrace. Exiting."
+        print("Error: you must be root to run lptrace. Exiting.")
         sys.exit(-1)
 
     if options.debugger is True:
